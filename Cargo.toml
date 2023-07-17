@@ -1,0 +1,3 @@
+[workspace]
+
+members = ["tracing_lib", "a_tracing_window"]
