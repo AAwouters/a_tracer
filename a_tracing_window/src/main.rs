@@ -68,6 +68,10 @@ fn main() -> Result<(), Error> {
                 gui_framework.resize(size.width, size.height);
             }
 
+            if let Some(scale_factor) = input.scale_factor() {
+                gui_framework.scale_factor(scale_factor as f32);
+            }
+
             window.request_redraw();
         }
 
