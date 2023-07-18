@@ -1,3 +1,4 @@
+use a_tracing_lib::tracer::ATracer;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::{
@@ -45,6 +46,8 @@ fn main() -> Result<(), Error> {
         (pixels, framework)
     };
 
+    let mut tracer = ATracer::new(WIDTH, HEIGHT);
+
     event_loop.run(move |event, _, control_flow| {
         if input.update(&event) {
             if input.key_pressed(VirtualKeyCode::Escape) || input.close_requested() {
@@ -66,12 +69,14 @@ fn main() -> Result<(), Error> {
                 }
 
                 gui_framework.resize(size.width, size.height);
+                tracer.resize(size.width, size.height);
             }
 
             if let Some(scale_factor) = input.scale_factor() {
                 gui_framework.scale_factor(scale_factor as f32);
             }
 
+            tracer.update();
             window.request_redraw();
         }
 
@@ -81,12 +86,7 @@ fn main() -> Result<(), Error> {
             }
 
             Event::RedrawRequested(_) => {
-                draw(
-                    pixels.frame_mut(),
-                    gui_framework.gui_state.red,
-                    gui_framework.gui_state.green,
-                    gui_framework.gui_state.blue,
-                );
+                tracer.draw(pixels.frame_mut());
 
                 gui_framework.prepare(&window);
 
@@ -110,10 +110,4 @@ fn main() -> Result<(), Error> {
 
 fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
     error!("{method_name}() failed: {err}");
-}
-
-fn draw(frame: &mut [u8], red: u8, green: u8, blue: u8) {
-    for pixel in frame.chunks_exact_mut(4) {
-        pixel.copy_from_slice(&[red, green, blue, 0xff]);
-    }
 }

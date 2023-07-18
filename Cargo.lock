@@ -3,9 +3,14 @@
 version = 3
 
 [[package]]
+name = "a_tracing_lib"
+version = "0.1.0"
+
+[[package]]
 name = "a_tracing_window"
 version = "0.1.0"
 dependencies = [
+ "a_tracing_lib",
  "egui",
  "egui-wgpu",
  "egui-winit",
@@ -1443,10 +1448,6 @@ dependencies = [
  "toml_datetime",
  "winnow",
 ]
-
-[[package]]
-name = "tracing_lib"
-version = "0.1.0"
 
 [[package]]
 name = "ttf-parser"

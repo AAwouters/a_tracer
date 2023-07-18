@@ -1,5 +1,5 @@
 [package]
-name = "tracing_lib"
+name = "a_tracing_lib"
 version = "0.1.0"
 edition = "2021"
 

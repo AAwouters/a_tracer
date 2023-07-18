@@ -14,3 +14,4 @@ egui-winit = { version = "0.22", default-features = false }
 pixels = "0.13"
 log = "0.4"
 env_logger = "0.10"
+a_tracing_lib = { path = "../a_tracing_lib" }
