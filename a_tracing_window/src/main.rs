@@ -71,7 +71,6 @@ fn main() -> Result<(), Error> {
 
                 gui_framework.resize(size.width, size.height);
                 tracer.resize(size.width, size.height);
-                tracer.start_render();
             }
 
             if let Some(scale_factor) = input.scale_factor() {
@@ -79,6 +78,7 @@ fn main() -> Result<(), Error> {
             }
 
             tracer.update();
+            tracer.start_render();
             window.request_redraw();
         }
 

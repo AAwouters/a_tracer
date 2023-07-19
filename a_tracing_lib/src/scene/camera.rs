@@ -30,7 +30,7 @@ impl PerspectiveCamera {
         let vp_height = 2.0 * h;
         let vp_width = aspect_ratio * vp_height;
 
-        let w = direction.normalize();
+        let w = -direction.normalize();
         let u = up.cross(w).normalize();
         let v = w.cross(u);
 
@@ -90,7 +90,13 @@ impl PerspectiveCamera {
     }
 
     pub fn set_direction(&mut self, direction: Vec3) {
-        self.direction = direction.normalize();
+        self.direction = -direction.normalize();
+        self.recalculate_parameters();
+    }
+
+    pub fn set_origin_and_direction(&mut self, origin: Vec3, direction: Vec3) {
+        self.origin = origin;
+        self.direction = -direction.normalize();
         self.recalculate_parameters();
     }
 }

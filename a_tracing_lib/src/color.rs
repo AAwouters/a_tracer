@@ -1,3 +1,5 @@
+use glam::Vec3;
+
 /// Struct holding a color in rgb format using f32's
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct Color {
@@ -16,6 +18,10 @@ pub const WHITE: Color = Color::new(1.0, 1.0, 1.0);
 impl Color {
     pub const fn new(r: f32, g: f32, b: f32) -> Self {
         Self { r, g, b }
+    }
+
+    pub fn from_normal(normal: Vec3) -> Self {
+        0.5 * (Color::new(normal.x, normal.y, normal.z) + WHITE)
     }
 
     pub fn lerp(self, rhs: Self, t: f32) -> Self {

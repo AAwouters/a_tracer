@@ -1,3 +1,7 @@
+use std::time::Instant;
+
+use glam::Vec3;
+
 use crate::{color::Color, scene::Scene};
 
 pub struct ATracer {
@@ -6,6 +10,8 @@ pub struct ATracer {
     color_buffer: Vec<Color>,
     render_status: RenderStatus,
     scene: Scene,
+    last_update: Instant,
+    elapsed_time: f32,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -23,16 +29,39 @@ impl ATracer {
             color_buffer: vec![Default::default(); (width * height) as usize],
             render_status: RenderStatus::Ready,
             scene: Scene::default(),
+            last_update: Instant::now(),
+            elapsed_time: 0.0,
         }
     }
 
-    pub fn update(&mut self) {}
+    pub fn update(&mut self) {
+        let now = Instant::now();
+        let since_last_frame = now.duration_since(self.last_update);
+
+        self.elapsed_time += since_last_frame.as_secs_f32();
+        self.last_update = now;
+
+        let origin = Vec3::new(
+            self.elapsed_time.sin() * 5.0,
+            0.0,
+            self.elapsed_time.cos() * 5.0,
+        );
+
+        let direction = Vec3::ZERO - origin;
+
+        self.scene
+            .camera
+            .set_origin_and_direction(origin, direction);
+    }
 
     /// Resize and clear all buffers of the tracer
     pub fn resize(&mut self, width: u32, height: u32) {
         self.width = width;
         self.height = height;
         self.color_buffer = vec![Default::default(); (width * height) as usize];
+        self.scene
+            .camera
+            .set_aspect_ratio(width as f32 / height as f32);
     }
 
     /// Start rendering the current scene with the current settings to the color buffer
