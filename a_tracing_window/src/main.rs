@@ -13,8 +13,8 @@ use crate::gui::GuiFramework;
 
 mod gui;
 
-const WIDTH: u32 = 400;
-const HEIGHT: u32 = 300;
+const WIDTH: u32 = 1280;
+const HEIGHT: u32 = 720;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
@@ -55,6 +55,7 @@ fn main() -> Result<(), Error> {
                 return;
             }
 
+            // When the window resizes also resize the tracer
             if let Some(size) = input.window_resized() {
                 if let Err(err) = pixels.resize_surface(size.width, size.height) {
                     log_error("pixels.resize_surface", err);
@@ -70,6 +71,7 @@ fn main() -> Result<(), Error> {
 
                 gui_framework.resize(size.width, size.height);
                 tracer.resize(size.width, size.height);
+                tracer.start_render();
             }
 
             if let Some(scale_factor) = input.scale_factor() {
