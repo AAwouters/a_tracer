@@ -30,6 +30,7 @@ impl PerspectiveCamera {
         let vp_height = 2.0 * h;
         let vp_width = aspect_ratio * vp_height;
 
+        // We have to invert the direction because thats simply how the math works
         let w = -direction.normalize();
         let u = up.cross(w).normalize();
         let v = w.cross(u);
@@ -74,27 +75,39 @@ impl PerspectiveCamera {
         self.lower_left_corner = self.origin - 0.5 * self.horizontal - 0.5 * self.vertical - w;
     }
 
+    /// Set the aspect ratio of the camera to the given value
     pub fn set_aspect_ratio(&mut self, aspect_ratio: f32) {
         self.aspect_ratio = aspect_ratio;
         self.recalculate_parameters();
     }
 
+    /// Set the vertical field of view of the camera to the given value
     pub fn set_vertical_fov(&mut self, vertical_fov: f32) {
         self.vertical_fov = vertical_fov;
         self.recalculate_parameters();
     }
 
+    /// Set the vertical field of view of the camera depending on the given horizontal field of view and the stored aspect ratio
+    pub fn set_horizontal_fov(&mut self, horizontal_fov: f32) {
+        self.vertical_fov = 1.0 / self.aspect_ratio * horizontal_fov;
+    }
+
+    /// Set the position of the camera to the given value
     pub fn set_origin(&mut self, origin: Vec3) {
         self.origin = origin;
         self.recalculate_parameters();
     }
 
+    /// Set the viewing direction of the camera to the given value
     pub fn set_direction(&mut self, direction: Vec3) {
+        // See inversion comment in the camera constructor
         self.direction = -direction.normalize();
         self.recalculate_parameters();
     }
 
+    /// Set both the position and the viewing direction of the camera
     pub fn set_origin_and_direction(&mut self, origin: Vec3, direction: Vec3) {
+        // See inversion comment in the camera constructor
         self.origin = origin;
         self.direction = -direction.normalize();
         self.recalculate_parameters();
