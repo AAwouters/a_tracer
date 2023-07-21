@@ -5,7 +5,7 @@ use glam::Vec3;
 use crate::ray::Ray;
 
 pub struct PerspectiveCamera {
-    origin: Vec3,
+    pub origin: Vec3,
     direction: Vec3,
     lower_left_corner: Vec3,
     up: Vec3,

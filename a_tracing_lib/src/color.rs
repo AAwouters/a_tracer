@@ -70,6 +70,14 @@ impl std::ops::SubAssign for Color {
     }
 }
 
+impl std::ops::Mul for Color {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        Color::new(self.r * rhs.r, self.g * rhs.g, self.b * rhs.b)
+    }
+}
+
 impl std::ops::Mul<f32> for Color {
     type Output = Self;
 

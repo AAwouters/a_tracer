@@ -1,4 +1,5 @@
 pub mod camera;
+pub mod light;
 pub mod object;
 pub mod sphere;
 
@@ -8,23 +9,34 @@ use crate::{
 };
 use glam::Vec3;
 
-use self::{camera::PerspectiveCamera, object::Shape, sphere::Sphere};
+use self::{
+    camera::PerspectiveCamera,
+    light::{ambient_light::AmbientLight, DirectionalLight, Light},
+    object::Object,
+    sphere::Sphere,
+};
 
 pub struct Scene {
     pub camera: PerspectiveCamera,
-    spheres: Vec<Sphere>,
+    objects: Vec<Object>,
+    lights: Vec<Box<dyn Light>>,
 }
 
 impl Scene {
     pub fn new(camera: PerspectiveCamera) -> Self {
         Self {
             camera,
-            spheres: Vec::new(),
+            objects: Vec::new(),
+            lights: Vec::new(),
         }
     }
 
-    pub fn add_sphere(&mut self, sphere: Sphere) {
-        self.spheres.push(sphere);
+    pub fn add_object(&mut self, object: Object) {
+        self.objects.push(object);
+    }
+
+    pub fn add_light<T: Light + 'static>(&mut self, light: T) {
+        self.lights.push(Box::new(light));
     }
 
     pub fn render_pixel(&self, h: f32, v: f32) -> Color {
@@ -32,15 +44,15 @@ impl Scene {
         self.trace_ray(&ray)
     }
 
-    pub fn first_hit(&self, ray: &Ray) -> Option<HitRecord> {
+    pub fn first_hit(&self, ray: &Ray) -> Option<(&Object, HitRecord)> {
         let mut t_min = f32::MAX;
         let mut result = None;
 
-        for sphere in self.spheres.iter() {
-            if let Some(record) = sphere.hit(ray, 0.0, t_min) {
+        for object in self.objects.iter() {
+            if let Some(record) = object.shape.hit(ray, 0.0001, t_min) {
                 if record.t < t_min {
                     t_min = record.t;
-                    result = Some(record);
+                    result = Some((object, record));
                 }
             }
         }
@@ -48,10 +60,38 @@ impl Scene {
         result
     }
 
+    pub fn any_hit(&self, ray: &Ray) -> Option<HitRecord> {
+        let t_min = f32::MAX;
+
+        for object in self.objects.iter() {
+            if let Some(record) = object.shape.hit(ray, 0.0001, t_min) {
+                if record.t < t_min {
+                    return Some(record);
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn trace_ray(&self, ray: &Ray) -> Color {
         let hit = self.first_hit(ray);
-        if let Some(record) = hit {
-            Color::from_normal(record.normal)
+        if let Some((object, record)) = hit {
+            let mut color_sum = color::BLACK;
+
+            for light in self.lights.iter() {
+                if let Some(light_ray) = light.light_at(self, record.point) {
+                    let camera_dir = (self.camera.origin - record.point).normalize();
+                    color_sum += object.shade(
+                        record.normal,
+                        light_ray.color,
+                        light_ray.direction,
+                        camera_dir,
+                    );
+                }
+            }
+
+            color_sum
         } else {
             self.background_color(&ray.direction)
         }
@@ -66,20 +106,30 @@ impl Scene {
 
 impl Default for Scene {
     fn default() -> Self {
-        let mut scene = Self {
-            camera: Default::default(),
-            spheres: Default::default(),
-        };
+        let mut scene = Self::new(PerspectiveCamera::default());
 
-        scene.add_sphere(Sphere {
-            center: Vec3::new(0.0, 0.0, 0.0),
-            radius: 0.5,
-        });
+        scene.add_object(Object::new(
+            Sphere {
+                center: Vec3::new(0.0, 0.0, 0.0),
+                radius: 0.5,
+            },
+            color::RED,
+        ));
 
-        scene.add_sphere(Sphere {
-            center: Vec3::new(0.0, -100.5, 0.0),
-            radius: 100.0,
-        });
+        scene.add_object(Object::new(
+            Sphere {
+                center: Vec3::new(0.0, -100.5, 0.0),
+                radius: 100.0,
+            },
+            color::BLUE,
+        ));
+
+        scene.add_light(DirectionalLight::new(
+            color::WHITE,
+            Vec3::new(0.1, -0.7, -0.2),
+        ));
+
+        scene.add_light(AmbientLight::new(Color::new(0.2, 0.2, 0.2)));
 
         scene
     }
