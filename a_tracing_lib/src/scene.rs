@@ -49,7 +49,7 @@ impl Scene {
         let mut result = None;
 
         for object in self.objects.iter() {
-            if let Some(record) = object.shape.hit(ray, 0.0001, t_min) {
+            if let Some(record) = object.shape.hit(ray, 0.0005, t_min) {
                 if record.t < t_min {
                     t_min = record.t;
                     result = Some((object, record));
@@ -64,7 +64,7 @@ impl Scene {
         let t_min = f32::MAX;
 
         for object in self.objects.iter() {
-            if let Some(record) = object.shape.hit(ray, 0.0001, t_min) {
+            if let Some(record) = object.shape.hit(ray, 0.0005, t_min) {
                 if record.t < t_min {
                     return Some(record);
                 }
