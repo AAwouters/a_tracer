@@ -39,11 +39,6 @@ impl Scene {
         self.lights.push(Box::new(light));
     }
 
-    pub fn render_pixel(&self, h: f32, v: f32) -> Color {
-        let ray = self.camera.get_ray(h, v);
-        self.trace_ray(&ray)
-    }
-
     pub fn first_hit(&self, ray: &Ray) -> Option<(&Object, HitRecord)> {
         let mut t_min = f32::MAX;
         let mut result = None;

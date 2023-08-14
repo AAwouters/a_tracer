@@ -2,7 +2,11 @@ use std::time::Instant;
 
 use glam::Vec3;
 
-use crate::{color::Color, scene::Scene};
+use crate::{
+    color::{Color, BLACK},
+    sampling::{RegularSampler, SampleGenerator},
+    scene::Scene,
+};
 
 pub struct ATracer {
     width: u32,
@@ -10,6 +14,8 @@ pub struct ATracer {
     color_buffer: Vec<Color>,
     render_status: RenderStatus,
     scene: Scene,
+    sampler: Box<dyn SampleGenerator>,
+    number_of_samples: u32,
     last_update: Instant,
     elapsed_time: f32,
 }
@@ -29,6 +35,8 @@ impl ATracer {
             color_buffer: vec![Default::default(); (width * height) as usize],
             render_status: RenderStatus::Ready,
             scene: Scene::default(),
+            sampler: Box::new(RegularSampler::new(3)),
+            number_of_samples: 9,
             last_update: Instant::now(),
             elapsed_time: 0.0,
         }
@@ -69,15 +77,32 @@ impl ATracer {
         if self.render_status == RenderStatus::Ready {
             for i in 0..self.width {
                 for j in 0..self.height {
-                    let h = i as f32 / (self.width - 1) as f32;
-                    let v = 1.0 - (j as f32 / (self.height - 1) as f32);
+                    let mut color = BLACK;
 
-                    let color = self.scene.render_pixel(h, v);
+                    for s in 0..self.number_of_samples {
+                        let sample = self.sampler.get_sample(s);
+
+                        let h = (i as f32 + sample.x) / (self.width - 1) as f32;
+                        let v = 1.0 - ((j as f32 + sample.y) / (self.height - 1) as f32);
+
+                        let sample_color = self.render_pixel(h, v);
+
+                        color += sample_color;
+                    }
+
+                    color /= self.number_of_samples as f32;
+
                     let index = (j * self.width + i) as usize;
                     self.color_buffer[index] = color;
                 }
             }
         }
+    }
+
+    fn render_pixel(&self, h: f32, v: f32) -> Color {
+        let scene = &self.scene;
+        let ray = scene.camera.get_ray(h, v);
+        scene.trace_ray(&ray)
     }
 
     /// Draw the current color buffer of the tracer to the supplied frame
