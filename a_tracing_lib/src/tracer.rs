@@ -35,6 +35,11 @@ impl ATracer {
         }
     }
 
+    pub fn get_scene_mut(&mut self) -> &mut Scene {
+        self.render_status = RenderStatus::NeedsQuickrender;
+        &mut self.scene
+    }
+
     pub fn update(&mut self) {
         match self.render_status {
             RenderStatus::NeedsQuickrender => self.quick_render(),

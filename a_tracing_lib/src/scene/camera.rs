@@ -41,7 +41,7 @@ impl PerspectiveCamera {
 
         Self {
             origin,
-            direction: w,
+            direction: direction,
             lower_left_corner,
             up,
             horizontal,
@@ -66,7 +66,7 @@ impl PerspectiveCamera {
         let vp_height = 2.0 * h;
         let vp_width = self.aspect_ratio * vp_height;
 
-        let w = self.direction;
+        let w = -self.direction;
         let u = self.up.cross(w).normalize();
         let v = w.cross(u);
 
@@ -100,17 +100,40 @@ impl PerspectiveCamera {
 
     /// Set the viewing direction of the camera to the given value
     pub fn set_direction(&mut self, direction: Vec3) {
-        // See inversion comment in the camera constructor
-        self.direction = -direction.normalize();
+        self.direction = direction.normalize();
         self.recalculate_parameters();
     }
 
     /// Set both the position and the viewing direction of the camera
     pub fn set_origin_and_direction(&mut self, origin: Vec3, direction: Vec3) {
-        // See inversion comment in the camera constructor
         self.origin = origin;
-        self.direction = -direction.normalize();
+        self.direction = direction.normalize();
         self.recalculate_parameters();
+    }
+
+    pub fn apply_movement(
+        &mut self,
+        forward: f32,
+        sideways: f32,
+        vertical: f32,
+        pitch: f32,
+        yaw: f32,
+    ) {
+        let forward_vector = -Vec3::new(self.direction.x, 0.0, self.direction.z).normalize();
+        let sideways_vector = forward_vector.cross(self.up);
+        let camera_movement =
+            -forward * forward_vector + sideways * sideways_vector + vertical * self.up;
+
+        let mut target_direction = self.direction;
+        if yaw.abs() > 0.01 {
+            target_direction = rotate_vector(target_direction, self.up, yaw);
+        }
+        if pitch.abs() > 0.01 {
+            target_direction = rotate_vector(target_direction, sideways_vector, pitch);
+        }
+
+        // self.set_origin(self.origin + camera_movement);
+        self.set_origin_and_direction(self.origin + camera_movement, target_direction);
     }
 }
 
@@ -124,4 +147,16 @@ impl Default for PerspectiveCamera {
             16.0 / 9.0,
         )
     }
+}
+
+fn rotate_vector(vector: Vec3, axis: Vec3, angle: f32) -> Vec3 {
+    let cos_factor = angle.cos();
+    let cos_vector = vector * cos_factor;
+
+    let sin_factor = angle.sin();
+    let sin_vector = axis.cross(vector) * sin_factor;
+
+    let k_vector = axis.dot(vector) * (1.0 - cos_factor) * vector;
+
+    cos_vector + sin_vector + k_vector
 }
