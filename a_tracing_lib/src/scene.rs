@@ -92,6 +92,15 @@ impl Scene {
         }
     }
 
+    pub fn first_hit_color(&self, ray: &Ray) -> Color {
+        let hit = self.first_hit(ray);
+        if let Some((object, _record)) = hit {
+            object.color
+        } else {
+            self.background_color(&ray.direction)
+        }
+    }
+
     pub fn background_color(&self, direction: &Vec3) -> Color {
         let normalized = direction.normalize();
         let t = 0.5 * (normalized.y + 1.0);

@@ -1,3 +1,4 @@
+use a_tracing_lib::tracer::ATracer;
 use egui::{ClippedPrimitive, Context, TexturesDelta};
 use egui_wgpu::{renderer::ScreenDescriptor, wgpu, Renderer};
 use pixels::PixelsContext;
@@ -15,11 +16,7 @@ pub(crate) struct GuiFramework {
 }
 
 /// Application state
-pub(crate) struct GuiState {
-    pub(crate) red: u8,
-    pub(crate) green: u8,
-    pub(crate) blue: u8,
-}
+pub(crate) struct GuiState {}
 
 impl GuiFramework {
     /// Create ui
@@ -72,10 +69,10 @@ impl GuiFramework {
         self.screen_descriptor.pixels_per_point = scale_factor;
     }
 
-    pub(crate) fn prepare(&mut self, window: &Window) {
+    pub(crate) fn prepare(&mut self, window: &Window, tracer: &mut ATracer) {
         let raw_input = self.egui_state.take_egui_input(window);
         let output = self.egui_ctx.run(raw_input, |egui_ctx| {
-            self.gui_state.ui(egui_ctx);
+            self.gui_state.ui(egui_ctx, tracer);
         });
 
         self.textures.append(output.textures_delta);
@@ -134,19 +131,14 @@ impl GuiFramework {
 
 impl GuiState {
     fn new() -> Self {
-        Self {
-            red: 0x40,
-            green: 0xb0,
-            blue: 0xef,
-        }
+        Self {}
     }
 
-    fn ui(&mut self, ctx: &Context) {
+    fn ui(&mut self, ctx: &Context, tracer: &mut ATracer) {
         egui::Window::new("Panel").show(ctx, |ui| {
-            ui.label("Color");
-            ui.add(egui::DragValue::new(&mut self.red));
-            ui.add(egui::DragValue::new(&mut self.green));
-            ui.add(egui::DragValue::new(&mut self.blue));
+            if ui.add(egui::Button::new("Render")).clicked() {
+                tracer.start_render();
+            }
         });
     }
 }

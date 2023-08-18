@@ -78,7 +78,6 @@ fn main() -> Result<(), Error> {
             }
 
             tracer.update();
-            tracer.start_render();
             window.request_redraw();
         }
 
@@ -90,7 +89,7 @@ fn main() -> Result<(), Error> {
             Event::RedrawRequested(_) => {
                 tracer.draw(pixels.frame_mut());
 
-                gui_framework.prepare(&window);
+                gui_framework.prepare(&window, &mut tracer);
 
                 let render_result = pixels.render_with(|encoder, render_target, context| {
                     context.scaling_renderer.render(encoder, render_target);

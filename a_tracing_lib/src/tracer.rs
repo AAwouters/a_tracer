@@ -1,7 +1,3 @@
-use std::time::Instant;
-
-use glam::Vec3;
-
 use crate::{
     color::{Color, BLACK},
     sampling::{RegularSampler, SampleGenerator},
@@ -16,12 +12,11 @@ pub struct ATracer {
     scene: Scene,
     sampler: Box<dyn SampleGenerator>,
     number_of_samples: u32,
-    last_update: Instant,
-    elapsed_time: f32,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum RenderStatus {
+    NeedsQuickrender,
     Ready,
     Rendering,
     Finished,
@@ -33,33 +28,20 @@ impl ATracer {
             width,
             height,
             color_buffer: vec![Default::default(); (width * height) as usize],
-            render_status: RenderStatus::Ready,
+            render_status: RenderStatus::NeedsQuickrender,
             scene: Scene::default(),
             sampler: Box::new(RegularSampler::new(3)),
             number_of_samples: 9,
-            last_update: Instant::now(),
-            elapsed_time: 0.0,
         }
     }
 
     pub fn update(&mut self) {
-        let now = Instant::now();
-        let since_last_frame = now.duration_since(self.last_update);
-
-        self.elapsed_time += since_last_frame.as_secs_f32();
-        self.last_update = now;
-
-        let origin = Vec3::new(
-            self.elapsed_time.sin() * 5.0,
-            0.0,
-            self.elapsed_time.cos() * 5.0,
-        );
-
-        let direction = Vec3::ZERO - origin;
-
-        self.scene
-            .camera
-            .set_origin_and_direction(origin, direction);
+        match self.render_status {
+            RenderStatus::NeedsQuickrender => self.quick_render(),
+            RenderStatus::Ready => {}
+            RenderStatus::Rendering => {}
+            RenderStatus::Finished => {}
+        }
     }
 
     /// Resize and clear all buffers of the tracer
@@ -70,6 +52,8 @@ impl ATracer {
         self.scene
             .camera
             .set_aspect_ratio(width as f32 / height as f32);
+
+        self.render_status = RenderStatus::NeedsQuickrender;
     }
 
     /// Start rendering the current scene with the current settings to the color buffer
@@ -97,12 +81,36 @@ impl ATracer {
                 }
             }
         }
+
+        self.render_status = RenderStatus::Finished;
     }
 
     fn render_pixel(&self, h: f32, v: f32) -> Color {
         let scene = &self.scene;
         let ray = scene.camera.get_ray(h, v);
         scene.trace_ray(&ray)
+    }
+
+    pub fn quick_render(&mut self) {
+        for i in 0..self.width {
+            for j in 0..self.height {
+                let h = i as f32 / (self.width - 1) as f32;
+                let v = 1.0 - (j as f32 / (self.height - 1) as f32);
+
+                let color = self.quick_render_pixel(h, v);
+
+                let index = (j * self.width + i) as usize;
+                self.color_buffer[index] = color;
+            }
+        }
+
+        self.render_status = RenderStatus::Ready;
+    }
+
+    fn quick_render_pixel(&self, h: f32, v: f32) -> Color {
+        let scene = &self.scene;
+        let ray = scene.camera.get_ray(h, v);
+        scene.first_hit_color(&ray)
     }
 
     /// Draw the current color buffer of the tracer to the supplied frame
