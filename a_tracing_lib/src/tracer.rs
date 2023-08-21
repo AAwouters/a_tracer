@@ -5,13 +5,10 @@ use crate::{
 };
 
 pub struct ATracer {
-    width: u32,
-    height: u32,
+    render_settings: RenderSettings,
     color_buffer: Vec<Color>,
     render_status: RenderStatus,
     scene: Scene,
-    sampler: Box<dyn SampleGenerator>,
-    number_of_samples: u32,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -24,14 +21,17 @@ pub enum RenderStatus {
 
 impl ATracer {
     pub fn new(width: u32, height: u32) -> Self {
+        let render_settings = RenderSettings {
+            resolution: Resolution { width, height },
+            number_of_samples: 9,
+            sampler: Box::new(RegularSampler::new(3)),
+        };
+
         ATracer {
-            width,
-            height,
+            render_settings,
             color_buffer: vec![Default::default(); (width * height) as usize],
             render_status: RenderStatus::NeedsQuickrender,
             scene: Scene::default(),
-            sampler: Box::new(RegularSampler::new(3)),
-            number_of_samples: 9,
         }
     }
 
@@ -51,8 +51,8 @@ impl ATracer {
 
     /// Resize and clear all buffers of the tracer
     pub fn resize(&mut self, width: u32, height: u32) {
-        self.width = width;
-        self.height = height;
+        self.render_settings.resolution.width = width;
+        self.render_settings.resolution.height = height;
         self.color_buffer = vec![Default::default(); (width * height) as usize];
         self.scene
             .camera
@@ -63,27 +63,33 @@ impl ATracer {
 
     /// Start rendering the current scene with the current settings to the color buffer
     pub fn start_render(&mut self) {
-        if self.render_status == RenderStatus::Ready {
-            for i in 0..self.width {
-                for j in 0..self.height {
-                    let mut color = BLACK;
+        if self.render_status != RenderStatus::Ready {
+            return;
+        }
 
-                    for s in 0..self.number_of_samples {
-                        let sample = self.sampler.get_sample(s);
+        let width = self.render_settings.resolution.width;
+        let height = self.render_settings.resolution.height;
 
-                        let h = (i as f32 + sample.x) / (self.width - 1) as f32;
-                        let v = 1.0 - ((j as f32 + sample.y) / (self.height - 1) as f32);
+        for i in 0..width {
+            for j in 0..height {
+                let mut color = BLACK;
+                let nb_samples = self.render_settings.number_of_samples;
 
-                        let sample_color = self.render_pixel(h, v);
+                for s in 0..nb_samples {
+                    let sample = self.render_settings.sampler.get_sample(s);
 
-                        color += sample_color;
-                    }
+                    let h = (i as f32 + sample.x) / (width - 1) as f32;
+                    let v = 1.0 - ((j as f32 + sample.y) / (height - 1) as f32);
 
-                    color /= self.number_of_samples as f32;
+                    let sample_color = self.render_pixel(h, v);
 
-                    let index = (j * self.width + i) as usize;
-                    self.color_buffer[index] = color;
+                    color += sample_color;
                 }
+
+                color /= nb_samples as f32;
+
+                let index = (j * width + i) as usize;
+                self.color_buffer[index] = color;
             }
         }
 
@@ -97,14 +103,17 @@ impl ATracer {
     }
 
     pub fn quick_render(&mut self) {
-        for i in 0..self.width {
-            for j in 0..self.height {
-                let h = i as f32 / (self.width - 1) as f32;
-                let v = 1.0 - (j as f32 / (self.height - 1) as f32);
+        let width = self.render_settings.resolution.width;
+        let height = self.render_settings.resolution.height;
+
+        for i in 0..width {
+            for j in 0..height {
+                let h = i as f32 / (width - 1) as f32;
+                let v = 1.0 - (j as f32 / (height - 1) as f32);
 
                 let color = self.quick_render_pixel(h, v);
 
-                let index = (j * self.width + i) as usize;
+                let index = (j * width + i) as usize;
                 self.color_buffer[index] = color;
             }
         }
@@ -129,4 +138,15 @@ impl ATracer {
             pixel.copy_from_slice(&(<[u8; 4]>::from(self.color_buffer[i])))
         }
     }
+}
+
+pub struct RenderSettings {
+    pub resolution: Resolution,
+    pub number_of_samples: u32,
+    pub sampler: Box<dyn SampleGenerator>,
+}
+
+pub struct Resolution {
+    pub width: u32,
+    pub height: u32,
 }
