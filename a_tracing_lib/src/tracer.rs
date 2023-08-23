@@ -54,11 +54,9 @@ impl ATracer {
         self.render_settings.resolution.width = width;
         self.render_settings.resolution.height = height;
         self.color_buffer = vec![Default::default(); (width * height) as usize];
-        self.scene
+        self.get_scene_mut()
             .camera
             .set_aspect_ratio(width as f32 / height as f32);
-
-        self.render_status = RenderStatus::NeedsQuickrender;
     }
 
     /// Start rendering the current scene with the current settings to the color buffer
